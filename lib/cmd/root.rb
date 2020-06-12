@@ -24,6 +24,10 @@ module Cmd
       end
       parser.parse!(args)
       @stdout.puts parser
+    rescue => e
+      @stderr.puts e.message
+      @stderr.puts parser
+      exit(1)
     end
   end
 end

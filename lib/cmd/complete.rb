@@ -2,7 +2,6 @@ require 'optparse'
 
 
 module Cmd
-
   class CompleteTask
     def initialize(db, logger, stdout, stderr)
       @db = db
@@ -38,6 +37,10 @@ module Cmd
       end
       parser.parse!(args)
       options
+    rescue => e
+      @stderr.puts e.message
+      @stderr.puts parser
+      exit(1)
     end
   end
 end

@@ -30,15 +30,27 @@ module Cmd
       options = parse(args)
       errors = @contract.(options).errors(full: true).to_h
       unless errors.empty?
-        @stderr.puts errors.to_json
+        table = Terminal::Table.new do |t|
+          errors.each do |field, errors|
+            row = []
+            row.push(field)
+            errors.each do |err|
+              row.push(err)
+            end
+            t.add_row(row)
+          end
+        end
+        @stderr.puts "Failed to create todo"
+        @stderr.puts table
         return
       end
       options[:done] = false
       @db[:todos].insert(options)
       @stdout.puts "Task added successfully"
     rescue => e
-      @logger.debug(e)
-      @stderr.puts "Failed to add todo"
+      @stderr.puts e.message
+      @stderr.puts parser
+      exit(1)
     end
 
     private

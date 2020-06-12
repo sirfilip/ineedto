@@ -1,0 +1,57 @@
+#!/usr/bin/env ruby
+require 'optparse'
+require 'logger'
+require 'bundler'
+
+Bundler.setup
+
+require 'sequel'
+
+require File.expand_path('../../lib/cmd', __FILE__)
+
+logger = Logger.new(STDOUT)
+logger.level = Logger::DEBUG
+
+at_exit do
+  logger.close
+end
+
+DB = Sequel.sqlite "#{ENV['HOME']}/.tododb"
+
+DB.create_table(:todos) do
+  primary_key :id
+  Integer     :priority
+  String      :name
+  TrueClass   :done
+  DateTime    :due_date
+  DateTime    :completed_on
+end unless DB.table_exists?(:todos)
+
+
+cmd = case ARGV.first
+when "new"
+  ARGV.shift
+  Cmd::NewTask.new(DB, logger, STDOUT, STDERR)
+when "complete"
+  ARGV.shift
+  Cmd::CompleteTask.new(DB, logger, STDOUT, STDERR)
+when "list"
+  ARGV.shift
+  Cmd::ListTasks.new(DB, logger, STDOUT, STDERR)
+when "pending"
+  ARGV.shift
+  Cmd::PendingTasks.new(DB, logger, STDOUT, STDERR)
+when "completed"
+  ARGV.shift
+  Cmd::CompletedTasks.new(DB, logger, STDOUT, STDERR)
+when "search"
+  ARGV.shift
+  Cmd::SearchTasks.new(DB, logger, STDOUT, STDERR)
+when "today"
+  ARGV.shift
+  Cmd::TodayTasks.new(DB, logger, STDOUT, STDERR)
+else
+  Cmd::Root.new(logger, STDOUT, STDERR)
+end
+
+cmd.(ARGV) 

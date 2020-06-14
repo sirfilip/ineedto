@@ -3,22 +3,21 @@ require 'optparse'
 
 module Cmd
   class CompleteTask
-    def initialize(db, logger, stdout, stderr)
+    def initialize(db)
       @db = db
-      @logger = logger
-      @stdout = stdout
-      @stderr = stderr
     end
 
     def call(args)
       options = parse(args)
-      todo = @db[:todos].where(id: options[:id]).first
-      if todo.nil?
-        @stderr.puts "Not found"
-        exit(1)
+      @out || begin 
+        todo = @db[:todos].where(id: options[:id]).first
+        if todo.nil?
+          "Not found"
+        else
+          @db[:todos].where(id: options[:id]).update(done: true, completed_on: Date.today)
+          "Task completed"
+        end
       end
-      @db[:todos].where(id: options[:id]).update(done: true, completed_on: Date.today)
-      @stdout.puts "Todo completed"
     end
 
     private
@@ -26,9 +25,10 @@ module Cmd
     def parse(args)
       options = {}
       parser = OptionParser.new do |opts|
+        opts.banner = "Usage: ineedto complete"
+
         opts.on("--h", "--help", "Show this help and exit") do
-          @stdout.puts opts
-          exit(0)
+          @out = opts.help
         end
 
         opts.on("-t ID", "--task ID", Integer, "Task to complete") do |id|
@@ -37,10 +37,8 @@ module Cmd
       end
       parser.parse!(args)
       options
-    rescue => e
-      @stderr.puts e.message
-      @stderr.puts parser
-      exit(1)
+    rescue OptionParser::ParseError => e
+      raise CmdError, e.message
     end
   end
 end

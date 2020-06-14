@@ -1,10 +1,5 @@
 #!/usr/bin/env ruby
-require 'optparse'
 require 'logger'
-require 'bundler'
-
-Bundler.setup
-
 require 'sequel'
 
 require File.expand_path('../../lib/cmd', __FILE__)
@@ -16,7 +11,7 @@ at_exit do
   logger.close
 end
 
-DB = Sequel.sqlite "#{ENV['HOME']}/.tododb"
+DB = Sequel.sqlite "#{ENV['HOME']}/.ineedtodb"
 
 DB.create_table(:todos) do
   primary_key :id
@@ -31,27 +26,40 @@ end unless DB.table_exists?(:todos)
 cmd = case ARGV.first
 when "new"
   ARGV.shift
-  Cmd::NewTask.new(DB, logger, STDOUT, STDERR)
+  Cmd::NewTask.new(DB)
 when "complete"
   ARGV.shift
-  Cmd::CompleteTask.new(DB, logger, STDOUT, STDERR)
+  Cmd::CompleteTask.new(DB)
 when "list"
   ARGV.shift
-  Cmd::ListTasks.new(DB, logger, STDOUT, STDERR)
+  Cmd::ListTasks.new(DB)
 when "pending"
   ARGV.shift
-  Cmd::PendingTasks.new(DB, logger, STDOUT, STDERR)
+  Cmd::PendingTasks.new(DB)
 when "completed"
   ARGV.shift
-  Cmd::CompletedTasks.new(DB, logger, STDOUT, STDERR)
+  Cmd::CompletedTasks.new(DB)
 when "search"
   ARGV.shift
-  Cmd::SearchTasks.new(DB, logger, STDOUT, STDERR)
+  Cmd::SearchTasks.new(DB)
 when "today"
   ARGV.shift
-  Cmd::TodayTasks.new(DB, logger, STDOUT, STDERR)
+  Cmd::TodayTasks.new(DB)
+when "clean"
+  ARGV.shift
+  Cmd::CleanTasks.new(DB)
 else
-  Cmd::Root.new(logger, STDOUT, STDERR)
+  Cmd::Root.new
 end
 
-cmd.(ARGV) 
+begin
+  puts cmd.(ARGV)
+rescue Cmd::CmdError => e
+  puts e.message
+  exit(1)
+rescue => e 
+  puts "Failed to execute cmd"
+  puts e
+  exit(1)
+end
+

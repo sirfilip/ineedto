@@ -2,32 +2,22 @@ require 'optparse'
 
 module Cmd
   class Root
-    def initialize(logger, stdout, stderr)
-      @logger = logger
-      @stdout = stdout
-      @stderr = stderr
-    end
-
     def call(args)
       parser = OptionParser.new do |opts|
-        opts.banner = "Usage: todo [new|complete|list|pending|completed|today|search]"
+        opts.banner = "Usage: ineedto [new|complete|list|pending|completed|today|search]"
 
         opts.on("-h", "--help", "Prints this help") do
-          @stdout.opts
-          exit
+          @out = opts.help
         end
 
         opts.on("-v", "--version", "Prints version") do
-          @stdout.puts VERSION
-          exit
+          @out = VERSION
         end
       end
       parser.parse!(args)
-      @stdout.puts parser
-    rescue => e
-      @stderr.puts e.message
-      @stderr.puts parser
-      exit(1)
+      @out || parser.help
+    rescue OptionParser::ParseError => e
+      raise CmdError, e.message
     end
   end
 end

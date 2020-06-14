@@ -18,39 +18,36 @@ module Cmd
   end
 
   class NewTask
-    def initialize(db, logger, stdout, stderr)
+    def initialize(db)
       @db = db
-      @logger = logger
-      @stdout = stdout
-      @stderr = stderr
       @contract = NewTaskContract.new
+      @out = nil
     end
 
     def call(args)
       options = parse(args)
-      errors = @contract.(options).errors(full: true).to_h
-      unless errors.empty?
-        table = Terminal::Table.new do |t|
-          errors.each do |field, errors|
-            row = []
-            row.push(field)
-            errors.each do |err|
-              row.push(err)
+      @out || begin 
+        errors = @contract.(options).errors(full: true).to_h
+        unless errors.empty?
+          table = Terminal::Table.new do |t|
+            errors.each do |field, errors|
+              row = []
+              row.push(field)
+              errors.each do |err|
+                row.push(err)
+              end
+              t.add_row(row)
             end
-            t.add_row(row)
           end
+          "Failed to create task\n" + table.to_s
+        else
+          options[:done] = false
+          @db[:todos].insert(options)
+          "Task added successfully"
         end
-        @stderr.puts "Failed to create todo"
-        @stderr.puts table
-        return
       end
-      options[:done] = false
-      @db[:todos].insert(options)
-      @stdout.puts "Task added successfully"
-    rescue => e
-      @stderr.puts e.message
-      @stderr.puts parser
-      exit(1)
+    rescue OptionParser::ParseError => e
+      raise CmdError, e.message
     end
 
     private
@@ -58,11 +55,10 @@ module Cmd
     def parse(args)
       options = {}
       parser = OptionParser.new do |opts|
-        opts.banner = "Usage: todo new"
+        opts.banner = "Usage: ineedto new"
 
         opts.on("-h", "--help", "Prints this help") do
-          puts opts
-          exit
+          @out = opts.help
         end
 
         opts.on("-n", "--name NAME", "Task Name") do |name|
@@ -79,10 +75,8 @@ module Cmd
       end
       parser.parse(args)
       options
-    rescue => e
-      @stderr.puts("Failed to parse arguments")
-      @logger.debug(e.message)
-      exit(1)
+    rescue OptionParser::ParseError => e
+      raise CmdError, e.message
     end
   end
 end

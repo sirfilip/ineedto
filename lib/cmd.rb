@@ -6,8 +6,11 @@ require_relative 'cmd/pending'
 require_relative 'cmd/completed'
 require_relative 'cmd/search'
 require_relative 'cmd/today'
+require_relative 'cmd/clean'
 
 module Cmd
-  VERSION = "0.0.1"
+  class CmdError < StandardError; end
+
+  VERSION = "0.0.2"
   DATE_FORMAT = "%Y-%m-%d"
 end
